@@ -1,0 +1,15 @@
+services:
+  voice-chat-gateway:
+    build: .
+    container_name: voice-chat-gateway
+    ports:
+      - "18892:18892"
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - vcg-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  vcg-data:

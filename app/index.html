@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Chat Gateway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;
+  --surface:#0c0c18;
+  --card:#111120;
+  --card-hi:#15152a;
+  --border:#1c1c30;
+  --border-hi:#2a2a42;
+  --text:#dcdcf0;
+  --text-dim:#7878a0;
+  --text-muted:#3a3a58;
+  --accent:#6d52f5;
+  --accent-lo:rgba(109,82,245,.12);
+  --accent-glo:rgba(109,82,245,.25);
+  --green:#22c55e;
+  --red:#ef4444;
+  --stt:#38bdf8;
+  --chat:#a78bfa;
+  --tts:#fb923c;
+  --radius:10px;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:13px;
+  line-height:1.5;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+
+/* ── modal ── */
+.modal-backdrop{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;
+}
+.modal-backdrop.hidden{display:none}
+.modal{
+  background:var(--surface);
+  border:1px solid var(--border-hi);
+  border-radius:14px;
+  padding:28px;
+  width:340px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6);
+}
+.modal h2{font-size:16px;font-weight:600;margin-bottom:6px}
+.modal p{color:var(--text-dim);font-size:12px;margin-bottom:18px}
+.modal input{
+  width:100%;
+  background:var(--card);
+  border:1px solid var(--border-hi);
+  border-radius:8px;
+  padding:10px 12px;
+  color:var(--text);
+  font-family:monospace;
+  font-size:13px;
+  outline:none;
+  margin-bottom:12px;
+}
+.modal input:focus{border-color:var(--accent)}
+.btn-primary{
+  width:100%;
+  background:var(--accent);
+  border:none;
+  border-radius:8px;
+  padding:10px;
+  color:#fff;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:opacity .15s,transform .1s;
+}
+.btn-primary:hover{opacity:.9}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── header ── */
+header{
+  height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:var(--surface);
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{
+  width:28px;height:28px;
+  background:var(--accent-lo);
+  border:1px solid var(--accent-glo);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--accent);
+}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.status-badge{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;
+  color:var(--text-dim);
+  padding:5px 11px;
+  border:1px solid var(--border);
+  border-radius:20px;
+}
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--text-muted);
+  transition:background .3s;
+}
+.dot.online{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.offline{background:var(--red)}
+
+/* ── tabs ── */
+nav{
+  display:flex;gap:2px;
+  padding:0 20px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:var(--surface);
+}
+.tab-btn{
+  padding:12px 16px;
+  background:none;border:none;
+  color:var(--text-dim);
+  cursor:pointer;
+  font-size:12px;font-weight:500;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  position:relative;
+  transition:color .15s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--text)}
+.tab-btn.active::after{
+  content:'';
+  position:absolute;bottom:-1px;left:0;right:0;
+  height:2px;
+  background:var(--accent);
+  border-radius:2px 2px 0 0;
+}
+
+/* ── main ── */
+main{flex:1;overflow-y:auto}
+.tab-content{display:none;padding:20px 24px 40px}
+.tab-content.active{display:block}
+
+/* ── monitor ── */
+.log-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.log-count{font-size:11px;color:var(--text-dim)}
+.btn-ghost{
+  background:none;border:1px solid var(--border);border-radius:6px;
+  padding:5px 12px;color:var(--text-dim);cursor:pointer;font-size:11px;
+  transition:all .15s;
+}
+.btn-ghost:hover{border-color:var(--border-hi);color:var(--text)}
+.log-list{display:flex;flex-direction:column;gap:10px}
+.empty-state{
+  text-align:center;padding:60px 20px;
+  color:var(--text-muted);
+}
+.empty-state svg{display:block;margin:0 auto 14px;opacity:.3}
+.empty-state p{font-size:13px}
+
+.log-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  border-left:3px solid var(--border);
+  transition:border-color .2s;
+  animation:fadeIn .25s ease;
+}
+.log-card.ok{border-left-color:var(--green)}
+.log-card.error{border-left-color:var(--red)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+.log-meta{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:10px;
+  font-size:11px;color:var(--text-dim);
+  flex-wrap:wrap;
+}
+.badge{
+  padding:2px 8px;border-radius:12px;
+  font-size:10px;font-weight:500;letter-spacing:.02em;
+}
+.badge-ok{background:rgba(34,197,94,.12);color:var(--green)}
+.badge-err{background:rgba(239,68,68,.12);color:var(--red)}
+.badge-lang{background:var(--accent-lo);color:#a78bfa}
+.log-sep{color:var(--text-muted)}
+
+.log-turns{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.turn{display:flex;gap:8px;align-items:flex-start}
+.turn-label{
+  flex-shrink:0;
+  width:18px;height:18px;
+  border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;margin-top:1px;
+}
+.turn-user .turn-label{background:rgba(56,189,248,.15);color:var(--stt)}
+.turn-bot .turn-label{background:rgba(167,139,250,.15);color:var(--chat)}
+.turn-text{font-size:12.5px;color:var(--text);line-height:1.5}
+.turn-text.muted{color:var(--text-dim);font-style:italic}
+
+.timing-section{border-top:1px solid var(--border);padding-top:10px}
+.timing-bar{
+  display:flex;height:4px;border-radius:2px;overflow:hidden;
+  background:var(--border);margin-bottom:8px;gap:1px;
+}
+.seg{transition:flex .3s}
+.seg-stt{background:var(--stt)}
+.seg-chat{background:var(--chat)}
+.seg-tts{background:var(--tts)}
+.timing-labels{
+  display:flex;gap:14px;flex-wrap:wrap;
+  font-size:10.5px;
+}
+.t-stt{color:var(--stt)}
+.t-chat{color:var(--chat)}
+.t-tts{color:var(--tts)}
+.t-total{color:var(--text-dim);margin-left:auto}
+.err-msg{
+  font-size:11px;color:var(--red);margin-top:6px;
+  padding:6px 10px;background:rgba(239,68,68,.08);border-radius:6px;
+}
+
+/* ── config ── */
+.cfg-section{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  margin-bottom:14px;
+}
+.cfg-section h3{
+  font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-dim);
+  margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;
+}
+.cfg-section h3 .section-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
+}
+.provider-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.provider-btn{
+  padding:6px 14px;
+  border:1px solid var(--border-hi);border-radius:20px;
+  background:transparent;color:var(--text-dim);
+  cursor:pointer;font-size:11.5px;font-weight:500;
+  transition:all .15s;font-family:inherit;
+}
+.provider-btn:hover{border-color:var(--accent);color:var(--text)}
+.provider-btn.active{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+}
+
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+.field label{
+  display:block;font-size:11px;font-weight:500;
+  color:var(--text-dim);margin-bottom:5px;
+}
+.field-row{position:relative;display:flex}
+.field input,.field textarea,.field select{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--border-hi);
+  border-radius:7px;
+  padding:9px 12px;
+  color:var(--text);
+  font-family:inherit;font-size:12.5px;
+  outline:none;
+  transition:border-color .15s;
+}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
+.field-row input{padding-right:38px}
+.eye-btn{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--text-muted);
+  font-size:14px;padding:2px;transition:color .15s;
+}
+.eye-btn:hover{color:var(--text-dim)}
+.field .hint{font-size:10.5px;color:var(--text-muted);margin-top:4px}
+
+.cfg-actions{
+  display:flex;align-items:center;gap:12px;
+  padding-top:4px;
+}
+.save-btn{
+  background:var(--accent);border:none;border-radius:8px;
+  padding:10px 24px;color:#fff;font-size:13px;font-weight:500;
+  cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;
+}
+.save-btn:hover{opacity:.9}
+.save-btn:active{transform:scale(.98)}
+.save-btn:disabled{opacity:.4;cursor:not-allowed}
+.save-status{font-size:12px}
+.save-ok{color:var(--green)}
+.save-err{color:var(--red)}
+
+/* ── test ── */
+.test-wrap{
+  max-width:480px;margin:0 auto;
+  padding-top:20px;
+}
+.mic-area{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  padding:32px 20px;
+}
+.mic-ring{
+  position:relative;
+  width:100px;height:100px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mic-ring::before{
+  content:'';position:absolute;inset:-12px;border-radius:50%;
+  border:2px solid var(--border-hi);
+  transition:border-color .3s,box-shadow .3s;
+}
+.mic-ring.recording::before{
+  border-color:rgba(239,68,68,.4);
+  box-shadow:0 0 0 0 rgba(239,68,68,.3);
+  animation:ripple 1.4s ease-in-out infinite;
+}
+@keyframes ripple{
+  0%{box-shadow:0 0 0 0 rgba(239,68,68,.3)}
+  70%{box-shadow:0 0 0 20px rgba(239,68,68,0)}
+  100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
+}
+.mic-btn{
+  width:80px;height:80px;border-radius:50%;
+  background:var(--accent);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  box-shadow:0 4px 24px var(--accent-glo);
+  transition:background .2s,transform .15s,box-shadow .2s;
+}
+.mic-btn:hover{transform:scale(1.05);box-shadow:0 6px 32px var(--accent-glo)}
+.mic-btn:active{transform:scale(.96)}
+.mic-btn.recording{background:var(--red);box-shadow:0 4px 24px rgba(239,68,68,.3)}
+.mic-status{font-size:13px;color:var(--text-dim)}
+.test-opts{display:flex;gap:10px;align-items:center}
+.test-opts label{font-size:12px;color:var(--text-dim)}
+.test-opts select{
+  background:var(--card);border:1px solid var(--border-hi);
+  border-radius:7px;padding:6px 10px;color:var(--text);
+  font-family:inherit;font-size:12px;outline:none;cursor:pointer;
+}
+
+.test-result{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;margin-top:8px;
+  animation:fadeIn .25s ease;
+}
+.test-result.hidden{display:none}
+.result-row{margin-bottom:10px}
+.result-row:last-child{margin-bottom:0}
+.result-label{
+  font-size:10px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;
+}
+.result-text{font-size:13px;line-height:1.5}
+.result-audio{width:100%;margin-top:4px;height:32px}
+audio{filter:invert(1) hue-rotate(180deg);opacity:.7}
+.test-loading{
+  display:flex;align-items:center;gap:10px;
+  color:var(--text-dim);font-size:12px;padding:16px;
+  justify-content:center;
+}
+.spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid var(--border-hi);
+  border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── notice ── */
+.notice{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--card);border:1px solid var(--border-hi);
+  border-radius:10px;padding:12px 16px;
+  font-size:12.5px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  animation:slideUp .25s ease;
+  z-index:50;
+  display:flex;align-items:center;gap:8px;
+}
+.notice.hidden{display:none}
+.notice.ok .notice-dot{background:var(--green)}
+.notice.err .notice-dot{background:var(--red)}
+.notice-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<!-- Auth modal -->
+<div class="modal-backdrop" id="authModal">
+  <div class="modal">
+    <h2>Connect to gateway</h2>
+    <p>Enter the Bearer token to access monitoring and configuration.</p>
+    <input id="keyInput" type="password" placeholder="Bearer token..." autocomplete="off">
+    <p id="authError" style="display:none;color:var(--red);font-size:11.5px;margin-bottom:10px;">Wrong API key — try again.</p>
+    <button class="btn-primary" type="button" id="keySubmit">Connect</button>
+  </div>
+</div>
+
+<!-- Notice toast -->
+<div class="notice hidden" id="notice">
+  <span class="notice-dot"></span>
+  <span id="noticeText"></span>
+</div>
+
+<!-- App -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M1 7h2M4 3v8M7 1v12M10 4v6M11 7h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="brand-name">Voice Chat Gateway</span>
+  </div>
+  <div class="status-badge">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Connecting</span>
+  </div>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="monitor">Monitor</button>
+  <button class="tab-btn" data-tab="config">Config</button>
+  <button class="tab-btn" data-tab="test">Test</button>
+</nav>
+
+<main>
+  <!-- Monitor -->
+  <section id="tab-monitor" class="tab-content active">
+    <div class="log-toolbar">
+      <span class="log-count" id="logCount">—</span>
+      <button class="btn-ghost" id="clearBtn">Clear</button>
+    </div>
+    <div id="logList" class="log-list">
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M3 10h2M7 6v12M11 4v16M15 7v10M19 10h2" stroke-linecap="round"/>
+        </svg>
+        <p>No requests yet</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Config -->
+  <section id="tab-config" class="tab-content">
+    <div class="cfg-section">
+      <h3><span class="section-dot"></span>LLM Provider</h3>
+      <div class="provider-grid" id="providerGrid"></div>
+      <div class="field">
+        <label>Completions URL</label>
+        <input id="cfg-chat_completions_url" type="url" placeholder="https://api.openai.com/v1/chat/completions">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <div class="field-row">
+          <input id="cfg-chat_api_key" type="password" placeholder="sk-...">
+          <button class="eye-btn" data-target="cfg-chat_api_key">◎</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <input id="cfg-chat_model" type="text" placeholder="gpt-4o-mini">
+      </div>
+      <div class="field">
+        <label>System Prompt</label>
+        <textarea id="cfg-system_prompt" rows="4"></textarea>
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <h3><span class="section-dot"></span>STT Service</h3>
+      <div class="field">
+        <label>STT URL</label>
+        <input id="cfg-stt_url" type="url">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <div class="field-row">
+          <input id="cfg-stt_api_key" type="password">
+          <button class="eye-btn" data-target="cfg-stt_api_key">◎</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <h3><span class="section-dot"></span>TTS Service</h3>
+      <div class="field">
+        <label>TTS URL</label>
+        <input id="cfg-tts_url" type="url">
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <div class="field-row">
+          <input id="cfg-tts_api_key" type="password">
+          <button class="eye-btn" data-target="cfg-tts_api_key">◎</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Default Voice</label>
+        <input id="cfg-default_voice" type="text" placeholder="robin">
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <h3><span class="section-dot"></span>Gateway</h3>
+      <div class="field">
+        <label>Gateway API Key</label>
+        <div class="field-row">
+          <input id="cfg-voice_chat_api_key" type="password">
+          <button class="eye-btn" data-target="cfg-voice_chat_api_key">◎</button>
+        </div>
+        <div class="hint">If changed, your browser will update its stored key automatically.</div>
+      </div>
+    </div>
+
+    <div class="cfg-actions">
+      <button class="save-btn" id="saveBtn">Save Configuration</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </section>
+
+  <!-- Test -->
+  <section id="tab-test" class="tab-content">
+    <div class="test-wrap">
+      <div class="mic-area">
+        <div class="mic-ring" id="micRing">
+          <button class="mic-btn" id="micBtn">
+            <svg id="micIcon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
+        </div>
+        <p class="mic-status" id="micStatus">Tap to record</p>
+        <div class="test-opts">
+          <label>Language</label>
+          <select id="testLang">
+            <option value="">Auto</option>
+            <option value="en">English</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+        </div>
+      </div>
+      <div id="testLoading" class="test-loading hidden">
+        <div class="spinner"></div>
+        <span id="testLoadingText">Processing…</span>
+      </div>
+      <div id="testResult" class="test-result hidden"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ── state ─────────────────────────────────────────────────────────────────────
+const S = {
+  apiKey: localStorage.getItem('vcg_api_key') || '',
+  authGen: 0,   // incremented on each key submit; stale 401s won't reopen modal
+  online: false,
+  logs: [],
+  config: null,
+  recording: false,
+  mediaRecorder: null,
+  audioChunks: [],
+};
+
+const PROVIDERS = [
+  { id: 'openai',   label: 'OpenAI',    url: 'https://api.openai.com/v1/chat/completions',                                       model: 'gpt-4o-mini' },
+  { id: 'ollama',   label: 'Ollama',    url: 'http://localhost:11434/v1/chat/completions',                                        model: 'llama3.2' },
+  { id: 'gemini',   label: 'Gemini',    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',          model: 'gemini-2.0-flash' },
+  { id: 'deepseek', label: 'DeepSeek',  url: 'https://api.deepseek.com/v1/chat/completions',                                     model: 'deepseek-chat' },
+  { id: 'lmstudio', label: 'LM Studio', url: 'http://localhost:1234/v1/chat/completions',                                        model: 'local-model' },
+  { id: 'custom',   label: 'Custom',    url: '',                                                                                   model: '' },
+];
+
+// ── API ───────────────────────────────────────────────────────────────────────
+const api = {
+  headers(extra = {}) {
+    return { 'Authorization': `Bearer ${S.apiKey}`, ...extra };
+  },
+  async get(path) {
+    const gen = S.authGen;
+    const r = await fetch(path, { headers: api.headers() });
+    if (r.status === 401) { if (gen === S.authGen) showAuthModal('Wrong API key — try again.'); return null; }
+    return r.json();
+  },
+  async post(path, body) {
+    const gen = S.authGen;
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: api.headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+    });
+    if (r.status === 401) { if (gen === S.authGen) showAuthModal('Wrong API key — try again.'); return null; }
+    return r.json();
+  },
+  async postForm(path, form) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: api.headers(),
+      body: form,
+    });
+    return { ok: r.ok, status: r.status, data: await r.json().catch(() => null) };
+  },
+};
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function timeAgo(ts) {
+  const d = Date.now() / 1000 - ts;
+  if (d < 5)    return 'just now';
+  if (d < 60)   return `${Math.floor(d)}s ago`;
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  return `${Math.floor(d / 3600)}h ago`;
+}
+
+function fmtMs(ms) {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+
+function trunc(s, n = 120) {
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let noticeTimer = null;
+function showNotice(msg, type = 'ok') {
+  const el = document.getElementById('notice');
+  document.getElementById('noticeText').textContent = msg;
+  el.className = `notice ${type}`;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+// ── auth modal ────────────────────────────────────────────────────────────────
+function showAuthModal(errMsg) {
+  const err = document.getElementById('authError');
+  err.textContent = errMsg || '';
+  err.style.display = errMsg ? 'block' : 'none';
+  document.getElementById('authModal').classList.remove('hidden');
+  document.getElementById('keyInput').focus();
+}
+
+function hideAuthModal() {
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authModal').classList.add('hidden');
+}
+
+document.getElementById('keySubmit').onclick = () => {
+  const key = document.getElementById('keyInput').value.trim();
+  if (!key) return;
+  S.apiKey = key;
+  S.authGen++;   // invalidate any in-flight requests that might call showAuthModal
+  localStorage.setItem('vcg_api_key', key);
+  hideAuthModal();
+  init();
+};
+
+document.getElementById('keyInput').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('keySubmit').click();
+};
+
+// ── status ────────────────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch('/health');
+    const data = await r.json();
+    S.online = data.ok === true;
+  } catch {
+    S.online = false;
+  }
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className  = `dot ${S.online ? 'online' : 'offline'}`;
+  text.textContent = S.online ? 'Online' : 'Offline';
+}
+
+// ── monitor ───────────────────────────────────────────────────────────────────
+function renderLogs(logs) {
+  S.logs = logs;
+  const list = document.getElementById('logList');
+  document.getElementById('logCount').textContent = logs.length
+    ? `${logs.length} request${logs.length !== 1 ? 's' : ''}`
+    : '—';
+
+  if (!logs.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M3 10h2M7 6v12M11 4v16M15 7v10M19 10h2" stroke-linecap="round"/>
+      </svg><p>No requests yet</p></div>`;
+    return;
+  }
+
+  list.innerHTML = logs.map(e => {
+    const total = e.stt_ms + e.chat_ms + e.tts_ms || 1;
+    const sttF  = Math.max(e.stt_ms / total * 100, e.stt_ms ? 4 : 0).toFixed(1);
+    const chatF = Math.max(e.chat_ms / total * 100, e.chat_ms ? 4 : 0).toFixed(1);
+    const ttsF  = Math.max(e.tts_ms / total * 100, e.tts_ms ? 4 : 0).toFixed(1);
+
+    return `<div class="log-card ${e.status}">
+      <div class="log-meta">
+        <span class="badge badge-${e.status === 'ok' ? 'ok' : 'err'}">${e.status === 'ok' ? 'OK' : 'ERR'}</span>
+        <span class="log-sep">·</span>
+        <span>${timeAgo(e.ts)}</span>
+        ${e.lang && e.lang !== 'auto' ? `<span class="badge badge-lang">${esc(e.lang)}</span>` : ''}
+        <span class="log-sep">·</span>
+        <span style="color:var(--text-muted)">${esc(e.model)}</span>
+        <span class="log-sep">·</span>
+        <span style="color:var(--text-muted)">${esc(e.voice)}</span>
+      </div>
+      <div class="log-turns">
+        ${e.transcript ? `<div class="turn turn-user">
+          <div class="turn-label">🎤</div>
+          <div class="turn-text">${esc(trunc(e.transcript))}</div>
+        </div>` : ''}
+        ${e.reply ? `<div class="turn turn-bot">
+          <div class="turn-label">💬</div>
+          <div class="turn-text">${esc(trunc(e.reply))}</div>
+        </div>` : ''}
+        ${e.error ? `<div class="err-msg">${esc(trunc(e.error, 200))}</div>` : ''}
+      </div>
+      ${e.total_ms ? `<div class="timing-section">
+        <div class="timing-bar">
+          <div class="seg seg-stt" style="flex:${sttF}"></div>
+          <div class="seg seg-chat" style="flex:${chatF}"></div>
+          <div class="seg seg-tts" style="flex:${ttsF}"></div>
+        </div>
+        <div class="timing-labels">
+          ${e.stt_ms  ? `<span class="t-stt">STT ${fmtMs(e.stt_ms)}</span>` : ''}
+          ${e.chat_ms ? `<span class="t-chat">Chat ${fmtMs(e.chat_ms)}</span>` : ''}
+          ${e.tts_ms  ? `<span class="t-tts">TTS ${fmtMs(e.tts_ms)}</span>` : ''}
+          <span class="t-total">Total ${fmtMs(e.total_ms)}</span>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function fetchLogs() {
+  const data = await api.get('/logs');
+  if (data) renderLogs(data);
+}
+
+document.getElementById('clearBtn').onclick = () => renderLogs([]);
+
+// ── config ────────────────────────────────────────────────────────────────────
+function buildProviderGrid() {
+  const grid = document.getElementById('providerGrid');
+  grid.innerHTML = PROVIDERS.map(p =>
+    `<button class="provider-btn" data-id="${p.id}" type="button">${p.label}</button>`
+  ).join('');
+
+  grid.querySelectorAll('.provider-btn').forEach(btn => {
+    btn.onclick = () => {
+      const p = PROVIDERS.find(x => x.id === btn.dataset.id);
+      if (!p) return;
+      grid.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (p.url) document.getElementById('cfg-chat_completions_url').value = p.url;
+      if (p.model) document.getElementById('cfg-chat_model').value = p.model;
+    };
+  });
+}
+
+function fillConfigForm(cfg) {
+  S.config = cfg;
+  const fields = [
+    'voice_chat_api_key','stt_url','stt_api_key',
+    'chat_completions_url','chat_api_key','chat_model',
+    'tts_url','tts_api_key','default_voice','system_prompt',
+  ];
+  fields.forEach(k => {
+    const el = document.getElementById(`cfg-${k}`);
+    if (el) el.value = cfg[k] || '';
+  });
+
+  // highlight matching provider
+  const url = cfg.chat_completions_url || '';
+  document.querySelectorAll('.provider-btn').forEach(btn => {
+    const p = PROVIDERS.find(x => x.id === btn.dataset.id);
+    btn.classList.toggle('active', !!p && !!p.url && url.startsWith(p.url.split('/v1')[0]));
+  });
+}
+
+async function loadConfig() {
+  const data = await api.get('/config');
+  if (data) fillConfigForm(data);
+}
+
+document.querySelectorAll('.eye-btn').forEach(btn => {
+  btn.onclick = () => {
+    const inp = document.getElementById(btn.dataset.target);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '◎' : '◉';
+  };
+});
+
+document.getElementById('saveBtn').onclick = async () => {
+  const btn = document.getElementById('saveBtn');
+  const status = document.getElementById('saveStatus');
+  btn.disabled = true;
+  status.textContent = 'Saving…';
+  status.className = 'save-status';
+
+  const payload = {};
+  [
+    'voice_chat_api_key','stt_url','stt_api_key',
+    'chat_completions_url','chat_api_key','chat_model',
+    'tts_url','tts_api_key','default_voice','system_prompt',
+  ].forEach(k => {
+    const el = document.getElementById(`cfg-${k}`);
+    if (el) payload[k] = el.value;
+  });
+
+  const data = await api.post('/config', payload);
+  btn.disabled = false;
+
+  if (data) {
+    if (data.voice_chat_api_key && data.voice_chat_api_key !== S.apiKey) {
+      S.apiKey = data.voice_chat_api_key;
+      localStorage.setItem('vcg_api_key', S.apiKey);
+      showNotice('Config saved · API key updated', 'ok');
+    } else {
+      showNotice('Configuration saved', 'ok');
+    }
+    status.textContent = '✓ Saved';
+    status.className = 'save-status save-ok';
+    fillConfigForm(data);
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  } else {
+    status.textContent = '✗ Failed';
+    status.className = 'save-status save-err';
+    showNotice('Save failed — check console', 'err');
+  }
+};
+
+// ── test ──────────────────────────────────────────────────────────────────────
+const micBtn   = document.getElementById('micBtn');
+const micRing  = document.getElementById('micRing');
+const micStatus = document.getElementById('micStatus');
+const testLoading = document.getElementById('testLoading');
+const testResult  = document.getElementById('testResult');
+
+micBtn.onclick = () => {
+  if (!S.recording) startRecording();
+  else stopRecording();
+};
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    S.audioChunks = [];
+    S.mediaRecorder = new MediaRecorder(stream);
+    S.mediaRecorder.ondataavailable = e => S.audioChunks.push(e.data);
+    S.mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(S.audioChunks, { type: S.mediaRecorder.mimeType || 'audio/webm' });
+      sendAudio(blob);
+    };
+    S.mediaRecorder.start();
+    S.recording = true;
+    micBtn.classList.add('recording');
+    micRing.classList.add('recording');
+    micStatus.textContent = 'Recording… tap to stop';
+    micBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+  } catch (err) {
+    showNotice('Microphone access denied', 'err');
+  }
+}
+
+function stopRecording() {
+  if (S.mediaRecorder) S.mediaRecorder.stop();
+  S.recording = false;
+  micBtn.classList.remove('recording');
+  micRing.classList.remove('recording');
+  micStatus.textContent = 'Processing…';
+  micBtn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="9" y="2" width="6" height="12" rx="3"/>
+    <path d="M5 10a7 7 0 0 0 14 0"/>
+    <line x1="12" y1="19" x2="12" y2="22"/>
+    <line x1="8" y1="22" x2="16" y2="22"/>
+  </svg>`;
+}
+
+async function sendAudio(blob) {
+  testResult.classList.add('hidden');
+  testLoading.classList.remove('hidden');
+  document.getElementById('testLoadingText').textContent = 'Transcribing…';
+
+  const form = new FormData();
+  const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('ogg') ? 'ogg' : 'wav';
+  form.append('audio', blob, `recording.${ext}`);
+  const lang = document.getElementById('testLang').value;
+  if (lang) form.append('language', lang);
+
+  const { ok, status, data } = await api.postForm('/voice-chat', form);
+
+  testLoading.classList.add('hidden');
+  micStatus.textContent = 'Tap to record';
+
+  if (!ok || !data) {
+    const msg = data?.detail || `HTTP ${status}`;
+    testResult.className = 'test-result';
+    testResult.innerHTML = `<div class="result-label">Error</div><div class="result-text" style="color:var(--red)">${esc(msg)}</div>`;
+    showNotice(`Request failed: ${msg}`, 'err');
+    return;
+  }
+
+  testResult.className = 'test-result';
+  testResult.innerHTML = `
+    <div class="result-row">
+      <div class="result-label">You said</div>
+      <div class="result-text">${esc(data.transcript || '—')}</div>
+    </div>
+    <div class="result-row">
+      <div class="result-label">Reply</div>
+      <div class="result-text">${esc(data.reply || '—')}</div>
+    </div>
+    ${data.audio_base64 ? `<div class="result-row">
+      <div class="result-label">Audio</div>
+      <audio class="result-audio" controls autoplay src="data:audio/wav;base64,${data.audio_base64}"></audio>
+    </div>` : ''}
+  `;
+
+  showNotice('Done', 'ok');
+}
+
+// ── tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    if (btn.dataset.tab === 'config' && !S.config) loadConfig();
+  };
+});
+
+// ── init + polling ─────────────────────────────────────────────────────────────
+async function init() {
+  await checkHealth();
+  if (S.online) {
+    fetchLogs();
+    loadConfig();
+  }
+}
+
+if (!S.apiKey) {
+  showAuthModal();
+} else {
+  init();
+}
+
+setInterval(checkHealth, 15000);
+setInterval(() => { if (S.online && S.apiKey) fetchLogs(); }, 3000);
+</script>
+</body>
+</html>
