@@ -14,13 +14,53 @@ docker compose up -d --build
 
 > **Note:** Port 18891 is reserved for stt-frontend. This service runs on **18892**.
 
+## Web UI
+
+Open `http://localhost:18892/` after the container starts.
+
+The web UI is an operations console for:
+
+- live request monitoring with STT, LLM, and TTS timings
+- editing gateway, STT, LLM, TTS, CORS, timeout, and log-retention settings
+- selecting OpenAI-compatible LLM provider presets
+- recording a browser microphone test request
+
+The UI defaults to dark theme. Use the theme toggle in the top bar to switch
+between dark and light themes. The selected theme is stored in the browser.
+
+### Web UI login
+
+The web UI uses username/password login from `.env`:
+
+```bash
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin
+```
+
+Those defaults are for first boot only. Change them before exposing the service
+outside a trusted network.
+
+The API bearer token remains separate from the UI login. API clients should keep
+using `Authorization: Bearer <VOICE_CHAT_API_KEY>`.
+
+### LLM provider presets
+
+The UI includes presets for OpenClaw, ChatGPT/OpenAI, Anthropic, Gemini, Ollama,
+DeepSeek, LM Studio, OpenRouter, and Custom.
+
+Presets update the OpenAI-compatible chat-completions URL and default model.
+They do not overwrite API keys.
+
 ## Configuration
 
-All config is via `.env` (copied from `.env.example`).
+Initial config is loaded from `.env` (copied from `.env.example`). The web UI can
+then persist runtime config to `/app/data/config.json` in the Docker volume.
 
 | Variable               | Description                                            |
 |------------------------|--------------------------------------------------------|
 | `VOICE_CHAT_API_KEY`   | Bearer token required on every request                 |
+| `ADMIN_USERNAME`       | Web UI login username (defaults to `admin`)            |
+| `ADMIN_PASSWORD`       | Web UI login password (defaults to `admin`)            |
 | `STT_URL`              | Full URL to the STT `/transcribe` endpoint             |
 | `STT_API_KEY`          | Bearer token for the STT service                       |
 | `CHAT_COMPLETIONS_URL` | OpenAI-compatible `/v1/chat/completions` URL           |
@@ -29,6 +69,15 @@ All config is via `.env` (copied from `.env.example`).
 | `TTS_URL`              | Base URL of the TTS proxy (e.g. `http://…:5001/`)      |
 | `TTS_API_KEY`          | Bearer token for the TTS service                       |
 | `DEFAULT_VOICE`        | Voice ID to use when the client omits `voice`          |
+| `DEFAULT_LANGUAGE`     | Language to use when the client omits `language`       |
+| `DEFAULT_AUDIO_FORMAT` | Response audio format label returned by the gateway    |
+| `CHAT_TEMPERATURE`     | Default chat completion temperature                    |
+| `CHAT_MAX_TOKENS`      | Default chat completion token cap                      |
+| `STT_TIMEOUT_SECONDS`  | STT upstream timeout                                   |
+| `CHAT_TIMEOUT_SECONDS` | Chat upstream timeout                                  |
+| `TTS_TIMEOUT_SECONDS`  | TTS upstream timeout                                   |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins, or `*`                |
+| `LOG_RETENTION`        | Number of request log entries kept in memory           |
 
 ### STT service assumed request shape
 

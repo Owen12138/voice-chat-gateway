@@ -4,572 +4,845 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Voice Chat Gateway</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231269ff'/%3E%3Cpath d='M7 16h3M13 9v14M16 6v20M19 10v12M22 15h3' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+document.documentElement.dataset.theme = localStorage.getItem("vcg_theme") || "dark";
+</script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#07070f;
-  --surface:#0c0c18;
-  --card:#111120;
-  --card-hi:#15152a;
-  --border:#1c1c30;
-  --border-hi:#2a2a42;
-  --text:#dcdcf0;
-  --text-dim:#7878a0;
-  --text-muted:#3a3a58;
-  --accent:#6d52f5;
-  --accent-lo:rgba(109,82,245,.12);
-  --accent-glo:rgba(109,82,245,.25);
-  --green:#22c55e;
-  --red:#ef4444;
-  --stt:#38bdf8;
-  --chat:#a78bfa;
-  --tts:#fb923c;
-  --radius:10px;
-}
-html,body{height:100%;overflow:hidden}
-body{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  font-size:13px;
-  line-height:1.5;
-  display:flex;
-  flex-direction:column;
-}
-
-/* ── scrollbar ── */
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
-
-/* ── modal ── */
-.modal-backdrop{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.7);
-  backdrop-filter:blur(8px);
-  display:flex;align-items:center;justify-content:center;
-  z-index:100;
-}
-.modal-backdrop.hidden{display:none}
-.modal{
-  background:var(--surface);
-  border:1px solid var(--border-hi);
-  border-radius:14px;
-  padding:28px;
-  width:340px;
-  box-shadow:0 24px 60px rgba(0,0,0,.6);
-}
-.modal h2{font-size:16px;font-weight:600;margin-bottom:6px}
-.modal p{color:var(--text-dim);font-size:12px;margin-bottom:18px}
-.modal input{
-  width:100%;
-  background:var(--card);
-  border:1px solid var(--border-hi);
-  border-radius:8px;
-  padding:10px 12px;
-  color:var(--text);
-  font-family:monospace;
-  font-size:13px;
-  outline:none;
-  margin-bottom:12px;
-}
-.modal input:focus{border-color:var(--accent)}
-.btn-primary{
-  width:100%;
-  background:var(--accent);
-  border:none;
-  border-radius:8px;
-  padding:10px;
-  color:#fff;
-  font-size:13px;
-  font-weight:500;
-  cursor:pointer;
-  transition:opacity .15s,transform .1s;
-}
-.btn-primary:hover{opacity:.9}
-.btn-primary:active{transform:scale(.98)}
-.btn-primary:disabled{opacity:.4;cursor:not-allowed}
-
-/* ── header ── */
-header{
-  height:52px;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-  background:var(--surface);
-}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-icon{
-  width:28px;height:28px;
-  background:var(--accent-lo);
-  border:1px solid var(--accent-glo);
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--accent);
-}
-.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em}
-.status-badge{
-  display:flex;align-items:center;gap:7px;
-  font-size:11px;
-  color:var(--text-dim);
-  padding:5px 11px;
-  border:1px solid var(--border);
-  border-radius:20px;
-}
-.dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--text-muted);
-  transition:background .3s;
-}
-.dot.online{background:var(--green);box-shadow:0 0 8px var(--green)}
-.dot.offline{background:var(--red)}
-
-/* ── tabs ── */
-nav{
-  display:flex;gap:2px;
-  padding:0 20px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-  background:var(--surface);
-}
-.tab-btn{
-  padding:12px 16px;
-  background:none;border:none;
-  color:var(--text-dim);
-  cursor:pointer;
-  font-size:12px;font-weight:500;
-  letter-spacing:.03em;
-  text-transform:uppercase;
-  position:relative;
-  transition:color .15s;
-}
-.tab-btn:hover{color:var(--text)}
-.tab-btn.active{color:var(--text)}
-.tab-btn.active::after{
-  content:'';
-  position:absolute;bottom:-1px;left:0;right:0;
-  height:2px;
-  background:var(--accent);
-  border-radius:2px 2px 0 0;
+:root {
+  color-scheme: dark;
+  --bg: #080b12;
+  --shell-bg: linear-gradient(90deg, #0c111c 0 176px, transparent 176px);
+  --panel: #101622;
+  --panel-muted: #0c121d;
+  --sidebar: rgba(12, 17, 28, 0.94);
+  --topbar: rgba(12, 17, 28, 0.86);
+  --control: #121a28;
+  --control-hover: #172235;
+  --line: #263244;
+  --line-soft: #1b2534;
+  --text: #eef4ff;
+  --strong: #ffffff;
+  --muted: #9aa8bb;
+  --faint: #65758c;
+  --blue: #4d8dff;
+  --blue-soft: rgba(77, 141, 255, 0.16);
+  --green: #42c978;
+  --green-soft: rgba(66, 201, 120, 0.16);
+  --orange: #f4a442;
+  --orange-soft: rgba(244, 164, 66, 0.16);
+  --red: #ff6b62;
+  --red-soft: rgba(255, 107, 98, 0.16);
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --modal-backdrop: rgba(2, 6, 15, 0.58);
+  --toast-bg: #eef4ff;
+  --toast-text: #111827;
+  --radius: 8px;
 }
 
-/* ── main ── */
-main{flex:1;overflow-y:auto}
-.tab-content{display:none;padding:20px 24px 40px}
-.tab-content.active{display:block}
-
-/* ── monitor ── */
-.log-toolbar{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:16px;
-}
-.log-count{font-size:11px;color:var(--text-dim)}
-.btn-ghost{
-  background:none;border:1px solid var(--border);border-radius:6px;
-  padding:5px 12px;color:var(--text-dim);cursor:pointer;font-size:11px;
-  transition:all .15s;
-}
-.btn-ghost:hover{border-color:var(--border-hi);color:var(--text)}
-.log-list{display:flex;flex-direction:column;gap:10px}
-.empty-state{
-  text-align:center;padding:60px 20px;
-  color:var(--text-muted);
-}
-.empty-state svg{display:block;margin:0 auto 14px;opacity:.3}
-.empty-state p{font-size:13px}
-
-.log-card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:14px 16px;
-  border-left:3px solid var(--border);
-  transition:border-color .2s;
-  animation:fadeIn .25s ease;
-}
-.log-card.ok{border-left-color:var(--green)}
-.log-card.error{border-left-color:var(--red)}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-
-.log-meta{
-  display:flex;align-items:center;gap:8px;
-  margin-bottom:10px;
-  font-size:11px;color:var(--text-dim);
-  flex-wrap:wrap;
-}
-.badge{
-  padding:2px 8px;border-radius:12px;
-  font-size:10px;font-weight:500;letter-spacing:.02em;
-}
-.badge-ok{background:rgba(34,197,94,.12);color:var(--green)}
-.badge-err{background:rgba(239,68,68,.12);color:var(--red)}
-.badge-lang{background:var(--accent-lo);color:#a78bfa}
-.log-sep{color:var(--text-muted)}
-
-.log-turns{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.turn{display:flex;gap:8px;align-items:flex-start}
-.turn-label{
-  flex-shrink:0;
-  width:18px;height:18px;
-  border-radius:5px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;margin-top:1px;
-}
-.turn-user .turn-label{background:rgba(56,189,248,.15);color:var(--stt)}
-.turn-bot .turn-label{background:rgba(167,139,250,.15);color:var(--chat)}
-.turn-text{font-size:12.5px;color:var(--text);line-height:1.5}
-.turn-text.muted{color:var(--text-dim);font-style:italic}
-
-.timing-section{border-top:1px solid var(--border);padding-top:10px}
-.timing-bar{
-  display:flex;height:4px;border-radius:2px;overflow:hidden;
-  background:var(--border);margin-bottom:8px;gap:1px;
-}
-.seg{transition:flex .3s}
-.seg-stt{background:var(--stt)}
-.seg-chat{background:var(--chat)}
-.seg-tts{background:var(--tts)}
-.timing-labels{
-  display:flex;gap:14px;flex-wrap:wrap;
-  font-size:10.5px;
-}
-.t-stt{color:var(--stt)}
-.t-chat{color:var(--chat)}
-.t-tts{color:var(--tts)}
-.t-total{color:var(--text-dim);margin-left:auto}
-.err-msg{
-  font-size:11px;color:var(--red);margin-top:6px;
-  padding:6px 10px;background:rgba(239,68,68,.08);border-radius:6px;
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f8fb;
+  --shell-bg: linear-gradient(90deg, #fff 0 176px, transparent 176px);
+  --panel: #ffffff;
+  --panel-muted: #fbfcfe;
+  --sidebar: rgba(255, 255, 255, 0.9);
+  --topbar: rgba(255, 255, 255, 0.86);
+  --control: #ffffff;
+  --control-hover: #fbfcfe;
+  --line: #dce2ea;
+  --line-soft: #edf1f5;
+  --text: #111827;
+  --strong: #111827;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --blue: #1269ff;
+  --blue-soft: #eaf2ff;
+  --green: #148a45;
+  --green-soft: #dff7e9;
+  --orange: #b45f06;
+  --orange-soft: #fff0d8;
+  --red: #b42318;
+  --red-soft: #fee4e2;
+  --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  --modal-backdrop: rgba(15, 23, 42, 0.34);
+  --toast-bg: #111827;
+  --toast-text: #ffffff;
 }
 
-/* ── config ── */
-.cfg-section{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:20px;
-  margin-bottom:14px;
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
 }
-.cfg-section h3{
-  font-size:11px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--text-dim);
-  margin-bottom:16px;
-  display:flex;align-items:center;gap:8px;
+button, input, textarea, select {
+  font: inherit;
 }
-.cfg-section h3 .section-dot{
-  width:6px;height:6px;border-radius:50%;background:var(--accent);
-}
-.provider-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
-.provider-btn{
-  padding:6px 14px;
-  border:1px solid var(--border-hi);border-radius:20px;
-  background:transparent;color:var(--text-dim);
-  cursor:pointer;font-size:11.5px;font-weight:500;
-  transition:all .15s;font-family:inherit;
-}
-.provider-btn:hover{border-color:var(--accent);color:var(--text)}
-.provider-btn.active{
-  background:var(--accent);border-color:var(--accent);color:#fff;
+button { cursor: pointer; }
+svg { display: block; }
+
+.shell {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  background: var(--shell-bg);
 }
 
-.field{margin-bottom:13px}
-.field:last-child{margin-bottom:0}
-.field label{
-  display:block;font-size:11px;font-weight:500;
-  color:var(--text-dim);margin-bottom:5px;
-}
-.field-row{position:relative;display:flex}
-.field input,.field textarea,.field select{
-  width:100%;
-  background:var(--surface);
-  border:1px solid var(--border-hi);
-  border-radius:7px;
-  padding:9px 12px;
-  color:var(--text);
-  font-family:inherit;font-size:12.5px;
-  outline:none;
-  transition:border-color .15s;
-}
-.field textarea{resize:vertical;min-height:70px;line-height:1.5}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent)}
-.field-row input{padding-right:38px}
-.eye-btn{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;color:var(--text-muted);
-  font-size:14px;padding:2px;transition:color .15s;
-}
-.eye-btn:hover{color:var(--text-dim)}
-.field .hint{font-size:10.5px;color:var(--text-muted);margin-top:4px}
-
-.cfg-actions{
-  display:flex;align-items:center;gap:12px;
-  padding-top:4px;
-}
-.save-btn{
-  background:var(--accent);border:none;border-radius:8px;
-  padding:10px 24px;color:#fff;font-size:13px;font-weight:500;
-  cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;
-}
-.save-btn:hover{opacity:.9}
-.save-btn:active{transform:scale(.98)}
-.save-btn:disabled{opacity:.4;cursor:not-allowed}
-.save-status{font-size:12px}
-.save-ok{color:var(--green)}
-.save-err{color:var(--red)}
-
-/* ── test ── */
-.test-wrap{
-  max-width:480px;margin:0 auto;
-  padding-top:20px;
-}
-.mic-area{
-  display:flex;flex-direction:column;align-items:center;gap:16px;
-  padding:32px 20px;
-}
-.mic-ring{
-  position:relative;
-  width:100px;height:100px;
-  display:flex;align-items:center;justify-content:center;
-}
-.mic-ring::before{
-  content:'';position:absolute;inset:-12px;border-radius:50%;
-  border:2px solid var(--border-hi);
-  transition:border-color .3s,box-shadow .3s;
-}
-.mic-ring.recording::before{
-  border-color:rgba(239,68,68,.4);
-  box-shadow:0 0 0 0 rgba(239,68,68,.3);
-  animation:ripple 1.4s ease-in-out infinite;
-}
-@keyframes ripple{
-  0%{box-shadow:0 0 0 0 rgba(239,68,68,.3)}
-  70%{box-shadow:0 0 0 20px rgba(239,68,68,0)}
-  100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
-}
-.mic-btn{
-  width:80px;height:80px;border-radius:50%;
-  background:var(--accent);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;
-  box-shadow:0 4px 24px var(--accent-glo);
-  transition:background .2s,transform .15s,box-shadow .2s;
-}
-.mic-btn:hover{transform:scale(1.05);box-shadow:0 6px 32px var(--accent-glo)}
-.mic-btn:active{transform:scale(.96)}
-.mic-btn.recording{background:var(--red);box-shadow:0 4px 24px rgba(239,68,68,.3)}
-.mic-status{font-size:13px;color:var(--text-dim)}
-.test-opts{display:flex;gap:10px;align-items:center}
-.test-opts label{font-size:12px;color:var(--text-dim)}
-.test-opts select{
-  background:var(--card);border:1px solid var(--border-hi);
-  border-radius:7px;padding:6px 10px;color:var(--text);
-  font-family:inherit;font-size:12px;outline:none;cursor:pointer;
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.test-result{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:16px;margin-top:8px;
-  animation:fadeIn .25s ease;
+.brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line-soft);
+  font-weight: 650;
+  font-size: 15px;
 }
-.test-result.hidden{display:none}
-.result-row{margin-bottom:10px}
-.result-row:last-child{margin-bottom:0}
-.result-label{
-  font-size:10px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;
+.mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  display: grid;
+  place-items: center;
 }
-.result-text{font-size:13px;line-height:1.5}
-.result-audio{width:100%;margin-top:4px;height:32px}
-audio{filter:invert(1) hue-rotate(180deg);opacity:.7}
-.test-loading{
-  display:flex;align-items:center;gap:10px;
-  color:var(--text-dim);font-size:12px;padding:16px;
-  justify-content:center;
-}
-.spinner{
-  width:16px;height:16px;border-radius:50%;
-  border:2px solid var(--border-hi);
-  border-top-color:var(--accent);
-  animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── notice ── */
-.notice{
-  position:fixed;bottom:24px;right:24px;
-  background:var(--card);border:1px solid var(--border-hi);
-  border-radius:10px;padding:12px 16px;
-  font-size:12.5px;
-  box-shadow:0 8px 32px rgba(0,0,0,.4);
-  animation:slideUp .25s ease;
-  z-index:50;
-  display:flex;align-items:center;gap:8px;
+.nav {
+  padding: 16px 10px;
+  display: grid;
+  gap: 6px;
 }
-.notice.hidden{display:none}
-.notice.ok .notice-dot{background:var(--green)}
-.notice.err .notice-dot{background:var(--red)}
-.notice-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.nav-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 7px;
+  text-align: left;
+}
+.nav-btn svg { color: var(--muted); }
+.nav-btn:hover { background: var(--control-hover); }
+.nav-btn.active {
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-weight: 600;
+}
+.nav-btn.active svg { color: var(--blue); }
+
+.side-status {
+  margin-top: auto;
+  padding: 16px 14px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+  display: grid;
+  gap: 14px;
+}
+.side-online {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  margin-top: 5px;
+  background: var(--faint);
+}
+.dot.online { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.dot.offline { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+.collapse {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0;
+}
+
+.work {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 64px;
+  background: var(--topbar);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.top-status {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  color: var(--text);
+}
+.inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-btn, .ghost-btn, .primary-btn, .danger-btn {
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--control);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-weight: 560;
+}
+.icon-btn { width: 34px; padding: 0; }
+.ghost-btn:hover, .icon-btn:hover { border-color: var(--faint); background: var(--control-hover); }
+.primary-btn {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(18, 105, 255, 0.18);
+}
+.primary-btn:disabled { opacity: 0.48; cursor: wait; }
+.danger-btn {
+  border-color: var(--red-soft);
+  color: var(--red);
+  background: var(--control);
+}
+
+.view {
+  display: none;
+  padding: 16px 22px 28px;
+  min-width: 0;
+}
+.view.active { display: block; }
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.92fr) minmax(470px, 1.08fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+.dashboard > *,
+#configHostMonitor,
+#configHostFull {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.panel.flat { box-shadow: none; }
+.panel-head {
+  min-height: 58px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.panel-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 540px;
+}
+th {
+  color: var(--muted);
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--panel-muted);
+  border-bottom: 1px solid var(--line);
+  padding: 9px 12px;
+}
+td {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 10px 12px;
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: 0; }
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 11px;
+}
+.status-ok { color: var(--green); background: var(--green-soft); }
+.status-err { color: var(--red); background: var(--red-soft); }
+.status-warn { color: var(--orange); background: var(--orange-soft); }
+.timing {
+  display: grid;
+  grid-template-columns: 32px minmax(54px, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 2px 0;
+}
+.timing span { color: var(--muted); font-size: 11px; }
+.bar {
+  height: 3px;
+  background: var(--line-soft);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  width: var(--w, 24%);
+  background: var(--c, var(--blue));
+  border-radius: inherit;
+}
+.empty {
+  padding: 48px 22px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty svg { margin: 0 auto 14px; color: var(--faint); }
+
+.transcripts {
+  border-top: 1px solid var(--line);
+  padding: 14px 16px 16px;
+}
+.section-label {
+  font-size: 12px;
+  font-weight: 750;
+  margin-bottom: 10px;
+}
+.transcript-list {
+  display: grid;
+  gap: 8px;
+}
+.turn-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 72px;
+  gap: 12px;
+  align-items: start;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 8px;
+}
+.turn-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.turn-copy {
+  color: var(--muted);
+  display: grid;
+  gap: 3px;
+}
+.turn-copy b {
+  color: var(--strong);
+  font-weight: 650;
+}
+
+.config-body { padding: 14px; }
+.provider-strip {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+.provider-btn {
+  height: 32px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: var(--control);
+  color: var(--text);
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+.provider-btn:last-child { border-right: 0; }
+.provider-btn:hover { background: var(--control-hover); }
+.provider-btn.active {
+  background: var(--blue);
+  color: #fff;
+  font-weight: 650;
+}
+.config-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.config-section:first-of-type { border-top: 0; }
+.config-section h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px 14px;
+}
+.field { min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 560;
+}
+input, textarea, select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--control);
+  color: var(--text);
+  min-height: 34px;
+  padding: 7px 10px;
+  outline: none;
+}
+textarea { min-height: 78px; resize: vertical; line-height: 1.45; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+.input-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px 34px;
+}
+.input-action input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.input-action button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-left: 0;
+  background: var(--control);
+  color: var(--muted);
+}
+.hint {
+  color: var(--faint);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.test-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(360px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.record-pad {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 34px 24px;
+}
+.mic-btn {
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  border: 1px solid var(--blue);
+  color: #fff;
+  background: var(--blue);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 18px 42px rgba(18, 105, 255, 0.22);
+}
+.mic-btn.recording {
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: 0 0 0 10px var(--red-soft), 0 18px 42px rgba(180, 35, 24, 0.18);
+}
+.test-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.result-box {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+.result-card {
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+  border-radius: 7px;
+  padding: 12px;
+}
+.result-card h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+audio { width: 100%; }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+.modal-backdrop.hidden { display: none; }
+.modal {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  padding: 22px;
+}
+.modal h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.modal p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+.auth-error {
+  display: none;
+  color: var(--red);
+  margin: 8px 0 0;
+}
+
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 30;
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 10px 13px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+.toast.hidden { display: none; }
+
+@media (max-width: 1120px) {
+  .shell { grid-template-columns: 76px minmax(0, 1fr); background: linear-gradient(90deg, var(--panel) 0 76px, transparent 76px); }
+  .brand span, .nav-btn span, .side-status span, .collapse span { display: none; }
+  .brand { justify-content: center; padding: 0; }
+  .nav-btn { justify-content: center; padding: 0; }
+  .dashboard, .test-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .shell { display: block; background: var(--bg); }
+  .sidebar {
+    min-height: 0;
+    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand { height: 54px; justify-content: flex-start; padding: 0 14px; }
+  .brand span, .nav-btn span { display: inline; }
+  .nav { grid-template-columns: repeat(3, 1fr); padding: 8px; }
+  .nav-btn { justify-content: center; height: 38px; }
+  .side-status { display: none; }
+  .topbar { height: auto; padding: 12px 14px; gap: 10px; align-items: flex-start; }
+  .top-status { gap: 10px; flex-wrap: wrap; }
+  .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .view { padding: 12px; }
+  .grid-2, .grid-3, .test-options { grid-template-columns: 1fr; }
+  .turn-row { grid-template-columns: 1fr; gap: 5px; }
+  .provider-strip {
+    display: flex;
+    overflow-x: auto;
+  }
+  .provider-btn {
+    min-width: 88px;
+  }
+}
 </style>
 </head>
 <body>
-
-<!-- Auth modal -->
 <div class="modal-backdrop" id="authModal">
   <div class="modal">
-    <h2>Connect to gateway</h2>
-    <p>Enter the Bearer token to access monitoring and configuration.</p>
-    <input id="keyInput" type="password" placeholder="Bearer token..." autocomplete="off">
-    <p id="authError" style="display:none;color:var(--red);font-size:11.5px;margin-bottom:10px;">Wrong API key — try again.</p>
-    <button class="btn-primary" type="button" id="keySubmit">Connect</button>
+    <h2>Sign in</h2>
+    <p>Use the admin username and password configured in the server environment.</p>
+    <input id="usernameInput" type="text" placeholder="Username" autocomplete="username" value="admin">
+    <div style="height:10px"></div>
+    <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password">
+    <div id="authError" class="auth-error">Wrong username or password. Try again.</div>
+    <div style="height:14px"></div>
+    <button class="primary-btn" id="loginSubmit" type="button" style="width:100%">Sign In</button>
   </div>
 </div>
 
-<!-- Notice toast -->
-<div class="notice hidden" id="notice">
-  <span class="notice-dot"></span>
-  <span id="noticeText"></span>
-</div>
+<div class="toast hidden" id="toast"></div>
 
-<!-- App -->
-<header>
-  <div class="brand">
-    <div class="brand-icon">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M1 7h2M4 3v8M7 1v12M10 4v6M11 7h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <span class="brand-name">Voice Chat Gateway</span>
-  </div>
-  <div class="status-badge">
-    <span class="dot" id="statusDot"></span>
-    <span id="statusText">Connecting</span>
-  </div>
-</header>
-
-<nav>
-  <button class="tab-btn active" data-tab="monitor">Monitor</button>
-  <button class="tab-btn" data-tab="config">Config</button>
-  <button class="tab-btn" data-tab="test">Test</button>
-</nav>
-
-<main>
-  <!-- Monitor -->
-  <section id="tab-monitor" class="tab-content active">
-    <div class="log-toolbar">
-      <span class="log-count" id="logCount">—</span>
-      <button class="btn-ghost" id="clearBtn">Clear</button>
-    </div>
-    <div id="logList" class="log-list">
-      <div class="empty-state">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M3 10h2M7 6v12M11 4v16M15 7v10M19 10h2" stroke-linecap="round"/>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M2 9h2M6 4v10M9 2v14M12 5v8M15 8v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
-        <p>No requests yet</p>
       </div>
+      <span>Voice Chat Gateway</span>
     </div>
-  </section>
 
-  <!-- Config -->
-  <section id="tab-config" class="tab-content">
-    <div class="cfg-section">
-      <h3><span class="section-dot"></span>LLM Provider</h3>
-      <div class="provider-grid" id="providerGrid"></div>
-      <div class="field">
-        <label>Completions URL</label>
-        <input id="cfg-chat_completions_url" type="url" placeholder="https://api.openai.com/v1/chat/completions">
+    <nav class="nav" aria-label="Primary">
+      <button class="nav-btn active" type="button" data-view="monitor">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 12l3-3 3 2 4-6 4 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Monitor</span>
+      </button>
+      <button class="nav-btn" type="button" data-view="config">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 3h4l.5 2 1.8 1 2-.6 2 3.2-1.5 1.4v2l1.5 1.4-2 3.2-2-.6-1.8 1-.5 2H7l-.5-2-1.8-1-2 .6-2-3.2L2.2 12v-2L.7 8.6l2-3.2 2 .6 1.8-1L7 3z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/><circle cx="9" cy="10" r="2.2" stroke="currentColor" stroke-width="1.35"/></svg>
+        <span>Config</span>
+      </button>
+      <button class="nav-btn" type="button" data-view="test">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="6" y="2" width="6" height="9" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 8.5a5.5 5.5 0 0 0 11 0M9 14v2M6.5 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Test</span>
+      </button>
+    </nav>
+
+    <div class="side-status">
+      <div class="side-online">
+        <i class="dot" id="sideDot"></i>
+        <div><b id="sideStatusText">Checking</b><br><span id="sideSubText">Not connected</span></div>
       </div>
-      <div class="field">
-        <label>API Key</label>
-        <div class="field-row">
-          <input id="cfg-chat_api_key" type="password" placeholder="sk-...">
-          <button class="eye-btn" data-target="cfg-chat_api_key">◎</button>
+      <button class="collapse" type="button">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="work">
+    <header class="topbar">
+      <div class="top-status">
+        <span class="inline-status"><i class="dot" id="topDot"></i><span id="topStatusText">Gateway Offline</span></span>
+        <span>Uptime <b id="uptimeText">--</b></span>
+        <span>Version <b>1.2.3</b></span>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-btn" type="button" id="themeToggle">
+          <svg id="themeIcon" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"></svg>
+          <span id="themeLabel">Dark</span>
+        </button>
+        <button class="ghost-btn" type="button" id="refreshBtn">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 3v4H9M3 13V9h4M12.2 6A4.8 4.8 0 0 0 4 4.8M3.8 10A4.8 4.8 0 0 0 12 11.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh
+        </button>
+        <button class="primary-btn" type="button" id="saveTopBtn">Save Changes</button>
+      </div>
+    </header>
+
+    <section class="view active" id="view-monitor">
+      <div class="dashboard">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Live Request Monitor</div>
+              <div class="panel-sub"><span id="logCount">No requests</span></div>
+            </div>
+            <div class="top-actions">
+              <span class="inline-status"><i class="dot online"></i>Live</span>
+              <button class="ghost-btn" type="button" id="pauseBtn">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 4v8M10 4v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                Pause
+              </button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th>Pipeline Timings</th>
+                  <th>Model</th>
+                </tr>
+              </thead>
+              <tbody id="requestRows"></tbody>
+            </table>
+          </div>
+          <div id="logEmpty" class="empty">
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none"><path d="M5 18h4M12 9v16M17 5v24M22 11v12M26 18h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            No requests yet
+          </div>
+          <div class="transcripts">
+            <div class="section-label">Recent Transcripts & Replies</div>
+            <div class="transcript-list" id="transcriptList"></div>
+          </div>
+        </section>
+
+        <div id="configHostMonitor"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-config">
+      <div id="configHostFull"></div>
+    </section>
+
+    <section class="view" id="view-test">
+      <div class="test-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Voice Test</div>
+              <div class="panel-sub">Record a short clip and send it through the configured pipeline.</div>
+            </div>
+          </div>
+          <div class="record-pad">
+            <button class="mic-btn" id="micBtn" type="button" aria-label="Start recording">
+              <svg id="micIcon" width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+            <div>
+              <div class="panel-title" id="micStatus" style="text-align:center">Tap to record</div>
+              <div class="panel-sub" style="text-align:center">Microphone permission is requested by the browser.</div>
+            </div>
+            <div class="test-options">
+              <div class="field">
+                <label for="testLang">Language</label>
+                <select id="testLang">
+                  <option value="">Config default</option>
+                  <option value="auto">Auto</option>
+                  <option value="en">English</option>
+                  <option value="zh">Chinese</option>
+                  <option value="ja">Japanese</option>
+                  <option value="ko">Korean</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="testVoice">Voice</label>
+                <input id="testVoice" type="text" placeholder="Config default">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Latest Result</div>
+              <div class="panel-sub" id="resultMeta">No test run yet</div>
+            </div>
+          </div>
+          <div class="result-box" id="testResult">
+            <div class="empty">Record audio to see transcript, model reply, and returned audio.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+
+<template id="configTemplate">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title">Configuration</div>
+      <div class="panel-sub">Gateway, STT, LLM, TTS, CORS, timeouts, and logs.</div>
+    </div>
+    <div class="top-actions">
+      <button class="ghost-btn reset-config" type="button">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 3v4H9M12.2 6A4.8 4.8 0 1 0 13 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Reset
+      </button>
+      <button class="primary-btn save-config" type="button">Save Changes</button>
+    </div>
+  </div>
+  <div class="config-body">
+    <div class="config-section">
+      <h3>Provider Presets</h3>
+      <div class="provider-strip" data-provider-grid></div>
+      <div class="hint">Presets update the endpoint and model only. API keys stay under your control.</div>
+    </div>
+
+    <div class="config-section">
+      <h3>Gateway</h3>
+      <div class="grid-2">
+        <div class="field full">
+          <label>Bearer Token</label>
+          <div class="input-action">
+            <input id="cfg-voice_chat_api_key" type="password" autocomplete="off">
+            <button type="button" data-reveal="cfg-voice_chat_api_key" title="Reveal"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 8s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button>
+            <button type="button" data-copy="cfg-voice_chat_api_key" title="Copy"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10V4.5A1.5 1.5 0 0 1 4.5 3H10" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>Model</label>
-        <input id="cfg-chat_model" type="text" placeholder="gpt-4o-mini">
-      </div>
-      <div class="field">
-        <label>System Prompt</label>
-        <textarea id="cfg-system_prompt" rows="4"></textarea>
-      </div>
-    </div>
-
-    <div class="cfg-section">
-      <h3><span class="section-dot"></span>STT Service</h3>
-      <div class="field">
-        <label>STT URL</label>
-        <input id="cfg-stt_url" type="url">
-      </div>
-      <div class="field">
-        <label>API Key</label>
-        <div class="field-row">
-          <input id="cfg-stt_api_key" type="password">
-          <button class="eye-btn" data-target="cfg-stt_api_key">◎</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cfg-section">
-      <h3><span class="section-dot"></span>TTS Service</h3>
-      <div class="field">
-        <label>TTS URL</label>
-        <input id="cfg-tts_url" type="url">
-      </div>
-      <div class="field">
-        <label>API Key</label>
-        <div class="field-row">
-          <input id="cfg-tts_api_key" type="password">
-          <button class="eye-btn" data-target="cfg-tts_api_key">◎</button>
-        </div>
-      </div>
-      <div class="field">
-        <label>Default Voice</label>
-        <input id="cfg-default_voice" type="text" placeholder="robin">
-      </div>
-    </div>
-
-    <div class="cfg-section">
-      <h3><span class="section-dot"></span>Gateway</h3>
-      <div class="field">
-        <label>Gateway API Key</label>
-        <div class="field-row">
-          <input id="cfg-voice_chat_api_key" type="password">
-          <button class="eye-btn" data-target="cfg-voice_chat_api_key">◎</button>
-        </div>
-        <div class="hint">If changed, your browser will update its stored key automatically.</div>
-      </div>
-    </div>
-
-    <div class="cfg-actions">
-      <button class="save-btn" id="saveBtn">Save Configuration</button>
-      <span id="saveStatus" class="save-status"></span>
-    </div>
-  </section>
-
-  <!-- Test -->
-  <section id="tab-test" class="tab-content">
-    <div class="test-wrap">
-      <div class="mic-area">
-        <div class="mic-ring" id="micRing">
-          <button class="mic-btn" id="micBtn">
-            <svg id="micIcon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="2" width="6" height="12" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0"/>
-              <line x1="12" y1="19" x2="12" y2="22"/>
-              <line x1="8" y1="22" x2="16" y2="22"/>
-            </svg>
-          </button>
-        </div>
-        <p class="mic-status" id="micStatus">Tap to record</p>
-        <div class="test-opts">
-          <label>Language</label>
-          <select id="testLang">
-            <option value="">Auto</option>
+        <div class="field">
+          <label>Default Language</label>
+          <select id="cfg-default_language">
+            <option value="auto">Auto</option>
             <option value="en">English</option>
             <option value="zh">Chinese</option>
             <option value="ja">Japanese</option>
@@ -579,420 +852,521 @@ audio{filter:invert(1) hue-rotate(180deg);opacity:.7}
             <option value="de">German</option>
           </select>
         </div>
+        <div class="field">
+          <label>Response Audio Format</label>
+          <select id="cfg-default_audio_format">
+            <option value="wav">wav</option>
+            <option value="mp3">mp3</option>
+            <option value="ogg">ogg</option>
+          </select>
+        </div>
       </div>
-      <div id="testLoading" class="test-loading hidden">
-        <div class="spinner"></div>
-        <span id="testLoadingText">Processing…</span>
-      </div>
-      <div id="testResult" class="test-result hidden"></div>
     </div>
-  </section>
-</main>
+
+    <div class="config-section">
+      <h3>Speech-to-Text</h3>
+      <div class="grid-2">
+        <div class="field full"><label>STT URL</label><input id="cfg-stt_url" type="url" placeholder="http://host.docker.internal:18890/transcribe"></div>
+        <div class="field full">
+          <label>API Key</label>
+          <div class="input-action">
+            <input id="cfg-stt_api_key" type="password" autocomplete="off">
+            <button type="button" data-reveal="cfg-stt_api_key" title="Reveal"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 8s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button>
+            <button type="button" data-copy="cfg-stt_api_key" title="Copy"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10V4.5A1.5 1.5 0 0 1 4.5 3H10" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>LLM</h3>
+      <div class="grid-2">
+        <div class="field full"><label>Completions URL</label><input id="cfg-chat_completions_url" type="url"></div>
+        <div class="field full">
+          <label>API Key</label>
+          <div class="input-action">
+            <input id="cfg-chat_api_key" type="password" autocomplete="off">
+            <button type="button" data-reveal="cfg-chat_api_key" title="Reveal"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 8s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button>
+            <button type="button" data-copy="cfg-chat_api_key" title="Copy"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10V4.5A1.5 1.5 0 0 1 4.5 3H10" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          </div>
+        </div>
+        <div class="field"><label>Model</label><input id="cfg-chat_model" type="text" placeholder="gpt-4.1-mini"></div>
+        <div class="field"><label>Temperature</label><input id="cfg-chat_temperature" type="number" min="0" max="2" step="0.1"></div>
+        <div class="field"><label>Max Tokens</label><input id="cfg-chat_max_tokens" type="number" min="1" step="1"></div>
+        <div class="field full"><label>System Prompt</label><textarea id="cfg-system_prompt"></textarea></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Text-to-Speech</h3>
+      <div class="grid-2">
+        <div class="field full"><label>TTS URL</label><input id="cfg-tts_url" type="url" placeholder="http://host.docker.internal:5001/"></div>
+        <div class="field full">
+          <label>API Key</label>
+          <div class="input-action">
+            <input id="cfg-tts_api_key" type="password" autocomplete="off">
+            <button type="button" data-reveal="cfg-tts_api_key" title="Reveal"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 8s2-4 6-4 6 4 6 4-2 4-6 4-6-4-6-4z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button>
+            <button type="button" data-copy="cfg-tts_api_key" title="Copy"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10V4.5A1.5 1.5 0 0 1 4.5 3H10" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          </div>
+        </div>
+        <div class="field"><label>Default Voice</label><input id="cfg-default_voice" type="text" placeholder="robin"></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Gateway Settings</h3>
+      <div class="grid-3">
+        <div class="field full"><label>CORS Allowed Origins</label><input id="cfg-cors_allowed_origins" type="text" placeholder="*, https://app.example.com"></div>
+        <div class="field"><label>STT Timeout (s)</label><input id="cfg-stt_timeout_seconds" type="number" min="1" step="1"></div>
+        <div class="field"><label>LLM Timeout (s)</label><input id="cfg-chat_timeout_seconds" type="number" min="1" step="1"></div>
+        <div class="field"><label>TTS Timeout (s)</label><input id="cfg-tts_timeout_seconds" type="number" min="1" step="1"></div>
+        <div class="field"><label>Log Retention</label><input id="cfg-log_retention" type="number" min="1" step="1"></div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <script>
-// ── state ─────────────────────────────────────────────────────────────────────
 const S = {
-  apiKey: localStorage.getItem('vcg_api_key') || '',
-  authGen: 0,   // incremented on each key submit; stale 401s won't reopen modal
+  authToken: localStorage.getItem("vcg_session_token") || "",
+  theme: localStorage.getItem("vcg_theme") || "dark",
+  authGen: 0,
   online: false,
+  paused: false,
   logs: [],
   config: null,
   recording: false,
   mediaRecorder: null,
   audioChunks: [],
+  startedAt: Date.now()
 };
 
 const PROVIDERS = [
-  { id: 'openai',   label: 'OpenAI',    url: 'https://api.openai.com/v1/chat/completions',                                       model: 'gpt-4o-mini' },
-  { id: 'ollama',   label: 'Ollama',    url: 'http://localhost:11434/v1/chat/completions',                                        model: 'llama3.2' },
-  { id: 'gemini',   label: 'Gemini',    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',          model: 'gemini-2.0-flash' },
-  { id: 'deepseek', label: 'DeepSeek',  url: 'https://api.deepseek.com/v1/chat/completions',                                     model: 'deepseek-chat' },
-  { id: 'lmstudio', label: 'LM Studio', url: 'http://localhost:1234/v1/chat/completions',                                        model: 'local-model' },
-  { id: 'custom',   label: 'Custom',    url: '',                                                                                   model: '' },
+  { id: "openclaw", label: "OpenClaw", url: "http://host.docker.internal:18789/v1/chat/completions", model: "openclaw/default" },
+  { id: "openai", label: "ChatGPT", url: "https://api.openai.com/v1/chat/completions", model: "gpt-4.1-mini" },
+  { id: "anthropic", label: "Anthropic", url: "https://api.anthropic.com/v1/chat/completions", model: "claude-sonnet-4-6" },
+  { id: "gemini", label: "Gemini", url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", model: "gemini-2.5-flash" },
+  { id: "ollama", label: "Ollama", url: "http://localhost:11434/v1/chat/completions", model: "llama3.2" },
+  { id: "deepseek", label: "DeepSeek", url: "https://api.deepseek.com/v1/chat/completions", model: "deepseek-chat" },
+  { id: "lmstudio", label: "LM Studio", url: "http://localhost:1234/v1/chat/completions", model: "local-model" },
+  { id: "openrouter", label: "OpenRouter", url: "https://openrouter.ai/api/v1/chat/completions", model: "openai/gpt-4.1-mini" },
+  { id: "custom", label: "Custom", url: "", model: "" }
 ];
 
-// ── API ───────────────────────────────────────────────────────────────────────
+const CONFIG_FIELDS = [
+  "voice_chat_api_key", "default_language", "default_audio_format",
+  "stt_url", "stt_api_key",
+  "chat_completions_url", "chat_api_key", "chat_model", "chat_temperature", "chat_max_tokens", "system_prompt",
+  "tts_url", "tts_api_key", "default_voice",
+  "cors_allowed_origins", "stt_timeout_seconds", "chat_timeout_seconds", "tts_timeout_seconds", "log_retention"
+];
+
+const NUMERIC_FIELDS = new Set([
+  "chat_temperature", "chat_max_tokens", "stt_timeout_seconds", "chat_timeout_seconds", "tts_timeout_seconds", "log_retention"
+]);
+
 const api = {
   headers(extra = {}) {
-    return { 'Authorization': `Bearer ${S.apiKey}`, ...extra };
+    return { Authorization: `Bearer ${S.authToken}`, ...extra };
   },
   async get(path) {
     const gen = S.authGen;
-    const r = await fetch(path, { headers: api.headers() });
-    if (r.status === 401) { if (gen === S.authGen) showAuthModal('Wrong API key — try again.'); return null; }
-    return r.json();
+    const response = await fetch(path, { headers: api.headers() });
+    if (response.status === 401) {
+      if (gen === S.authGen) expireSession("Please sign in again.");
+      return null;
+    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
   },
   async post(path, body) {
     const gen = S.authGen;
-    const r = await fetch(path, {
-      method: 'POST',
-      headers: api.headers({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(body),
+    const response = await fetch(path, {
+      method: "POST",
+      headers: api.headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body)
     });
-    if (r.status === 401) { if (gen === S.authGen) showAuthModal('Wrong API key — try again.'); return null; }
-    return r.json();
+    if (response.status === 401) {
+      if (gen === S.authGen) expireSession("Please sign in again.");
+      return null;
+    }
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.detail || `HTTP ${response.status}`);
+    return data;
   },
   async postForm(path, form) {
-    const r = await fetch(path, {
-      method: 'POST',
-      headers: api.headers(),
-      body: form,
-    });
-    return { ok: r.ok, status: r.status, data: await r.json().catch(() => null) };
-  },
+    const response = await fetch(path, { method: "POST", headers: api.headers(), body: form });
+    if (response.status === 401) expireSession("Please sign in again.");
+    return { ok: response.ok, status: response.status, data: await response.json().catch(() => null) };
+  }
 };
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-function timeAgo(ts) {
-  const d = Date.now() / 1000 - ts;
-  if (d < 5)    return 'just now';
-  if (d < 60)   return `${Math.floor(d)}s ago`;
-  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
-  return `${Math.floor(d / 3600)}h ago`;
+function $(id) { return document.getElementById(id); }
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 }
-
 function fmtMs(ms) {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+  if (!ms) return "--";
+  return ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${ms}ms`;
+}
+function fmtTime(ts) {
+  if (!ts) return "--";
+  return new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function trunc(text, len = 96) {
+  const s = String(text || "");
+  return s.length > len ? `${s.slice(0, len - 1)}...` : s;
+}
+function showToast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.remove("hidden");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => el.classList.add("hidden"), 3000);
+}
+function showAuth(message = "") {
+  $("authError").style.display = message ? "block" : "none";
+  $("authError").textContent = message;
+  $("authModal").classList.remove("hidden");
+  $("usernameInput").focus();
+}
+function hideAuth() {
+  $("authModal").classList.add("hidden");
 }
 
-function trunc(s, n = 120) {
-  return s.length > n ? s.slice(0, n) + '…' : s;
+function expireSession(message) {
+  S.authToken = "";
+  localStorage.removeItem("vcg_session_token");
+  showAuth(message);
+  renderStatus();
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function setTheme(theme) {
+  S.theme = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = S.theme;
+  localStorage.setItem("vcg_theme", S.theme);
+  const isDark = S.theme === "dark";
+  $("themeLabel").textContent = isDark ? "Dark" : "Light";
+  $("themeIcon").innerHTML = isDark
+    ? `<path d="M13.2 10.7A5.4 5.4 0 0 1 5.3 2.8 5.8 5.8 0 1 0 13.2 10.7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>`
+    : `<circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M12.6 3.4l-.9.9M4.3 11.7l-.9.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`;
 }
 
-let noticeTimer = null;
-function showNotice(msg, type = 'ok') {
-  const el = document.getElementById('notice');
-  document.getElementById('noticeText').textContent = msg;
-  el.className = `notice ${type}`;
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+function renderConfigPanels() {
+  const template = $("configTemplate").innerHTML;
+  const panel = document.createElement("section");
+  panel.className = "panel";
+  panel.id = "configPanel";
+  panel.innerHTML = template;
+  $("configHostMonitor").appendChild(panel);
+  setupConfigPanel(panel);
+  if (S.config) fillConfig(S.config);
 }
 
-// ── auth modal ────────────────────────────────────────────────────────────────
-function showAuthModal(errMsg) {
-  const err = document.getElementById('authError');
-  err.textContent = errMsg || '';
-  err.style.display = errMsg ? 'block' : 'none';
-  document.getElementById('authModal').classList.remove('hidden');
-  document.getElementById('keyInput').focus();
+function setupConfigPanel(root) {
+  const grid = root.querySelector("[data-provider-grid]");
+  grid.innerHTML = PROVIDERS.map(p => `<button class="provider-btn" type="button" data-provider="${p.id}">${p.label}</button>`).join("");
+  grid.querySelectorAll("[data-provider]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const preset = PROVIDERS.find(p => p.id === btn.dataset.provider);
+      if (!preset) return;
+      if (preset.url) setAllFieldValues("chat_completions_url", preset.url);
+      if (preset.model) setAllFieldValues("chat_model", preset.model);
+      syncProviderActive();
+    });
+  });
+  root.querySelectorAll(".save-config").forEach(btn => btn.addEventListener("click", saveConfig));
+  root.querySelectorAll(".reset-config").forEach(btn => btn.addEventListener("click", () => S.config && fillConfig(S.config)));
+  root.querySelectorAll("[data-reveal]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const fieldId = btn.dataset.reveal;
+      const input = document.getElementById(fieldId);
+      if (input) input.type = input.type === "password" ? "text" : "password";
+    });
+  });
+  root.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const input = document.getElementById(btn.dataset.copy);
+      if (!input) return;
+      await navigator.clipboard?.writeText(input.value || "");
+      showToast("Copied");
+    });
+  });
+  root.querySelectorAll("[id^='cfg-']").forEach(input => {
+    input.addEventListener("input", () => {
+      syncProviderActive();
+    });
+  });
 }
 
-function hideAuthModal() {
-  document.getElementById('authError').style.display = 'none';
-  document.getElementById('authModal').classList.add('hidden');
+function setAllFieldValues(key, value) {
+  const input = document.getElementById(`cfg-${key}`);
+  if (input) input.value = value;
 }
 
-document.getElementById('keySubmit').onclick = () => {
-  const key = document.getElementById('keyInput').value.trim();
-  if (!key) return;
-  S.apiKey = key;
-  S.authGen++;   // invalidate any in-flight requests that might call showAuthModal
-  localStorage.setItem('vcg_api_key', key);
-  hideAuthModal();
-  init();
-};
+function fillConfig(cfg) {
+  S.config = cfg;
+  CONFIG_FIELDS.forEach(key => {
+    const input = document.getElementById(`cfg-${key}`);
+    if (input) input.value = cfg[key] ?? "";
+  });
+  $("testVoice").value = "";
+  syncProviderActive();
+}
 
-document.getElementById('keyInput').onkeydown = e => {
-  if (e.key === 'Enter') document.getElementById('keySubmit').click();
-};
+function readConfigPayload() {
+  const payload = {};
+  CONFIG_FIELDS.forEach(key => {
+    const input = document.getElementById(`cfg-${key}`);
+    if (!input) return;
+    payload[key] = NUMERIC_FIELDS.has(key) ? Number(input.value) : input.value;
+  });
+  return payload;
+}
 
-// ── status ────────────────────────────────────────────────────────────────────
+function syncProviderActive() {
+  const url = document.querySelector("#cfg-chat_completions_url")?.value || "";
+  const match = PROVIDERS.find(p => p.url && url === p.url);
+  document.querySelectorAll("[data-provider]").forEach(btn => {
+    btn.classList.toggle("active", match?.id === btn.dataset.provider || (!match && btn.dataset.provider === "custom"));
+  });
+}
+
+async function loadConfig() {
+  try {
+    const data = await api.get("/config");
+    if (data) fillConfig(data);
+  } catch (error) {
+    showToast(`Config load failed: ${error.message}`);
+  }
+}
+
+async function saveConfig() {
+  const buttons = document.querySelectorAll(".save-config, #saveTopBtn");
+  buttons.forEach(btn => btn.disabled = true);
+  try {
+    const data = await api.post("/config", readConfigPayload());
+    if (data) {
+      fillConfig(data);
+      showToast("Configuration saved");
+    }
+  } catch (error) {
+    showToast(`Save failed: ${error.message}`);
+  } finally {
+    buttons.forEach(btn => btn.disabled = false);
+  }
+}
+
+function renderStatus() {
+  const dots = [$("topDot"), $("sideDot")];
+  dots.forEach(dot => dot.className = `dot ${S.online ? "online" : "offline"}`);
+  $("topStatusText").textContent = S.online ? "Gateway Online" : "Gateway Offline";
+  $("sideStatusText").textContent = S.online ? "Gateway Online" : "Gateway Offline";
+  $("sideSubText").textContent = S.authToken ? "Signed in" : "Login required";
+}
+
 async function checkHealth() {
   try {
-    const r = await fetch('/health');
+    const r = await fetch("/health");
     const data = await r.json();
     S.online = data.ok === true;
   } catch {
     S.online = false;
   }
-  const dot  = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  dot.className  = `dot ${S.online ? 'online' : 'offline'}`;
-  text.textContent = S.online ? 'Online' : 'Offline';
+  renderStatus();
 }
 
-// ── monitor ───────────────────────────────────────────────────────────────────
 function renderLogs(logs) {
-  S.logs = logs;
-  const list = document.getElementById('logList');
-  document.getElementById('logCount').textContent = logs.length
-    ? `${logs.length} request${logs.length !== 1 ? 's' : ''}`
-    : '—';
-
-  if (!logs.length) {
-    list.innerHTML = `<div class="empty-state">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-        <path d="M3 10h2M7 6v12M11 4v16M15 7v10M19 10h2" stroke-linecap="round"/>
-      </svg><p>No requests yet</p></div>`;
-    return;
-  }
-
-  list.innerHTML = logs.map(e => {
-    const total = e.stt_ms + e.chat_ms + e.tts_ms || 1;
-    const sttF  = Math.max(e.stt_ms / total * 100, e.stt_ms ? 4 : 0).toFixed(1);
-    const chatF = Math.max(e.chat_ms / total * 100, e.chat_ms ? 4 : 0).toFixed(1);
-    const ttsF  = Math.max(e.tts_ms / total * 100, e.tts_ms ? 4 : 0).toFixed(1);
-
-    return `<div class="log-card ${e.status}">
-      <div class="log-meta">
-        <span class="badge badge-${e.status === 'ok' ? 'ok' : 'err'}">${e.status === 'ok' ? 'OK' : 'ERR'}</span>
-        <span class="log-sep">·</span>
-        <span>${timeAgo(e.ts)}</span>
-        ${e.lang && e.lang !== 'auto' ? `<span class="badge badge-lang">${esc(e.lang)}</span>` : ''}
-        <span class="log-sep">·</span>
-        <span style="color:var(--text-muted)">${esc(e.model)}</span>
-        <span class="log-sep">·</span>
-        <span style="color:var(--text-muted)">${esc(e.voice)}</span>
+  S.logs = logs || [];
+  const rows = $("requestRows");
+  const empty = $("logEmpty");
+  const transcripts = $("transcriptList");
+  $("logCount").textContent = S.logs.length ? `${S.logs.length} recent request${S.logs.length === 1 ? "" : "s"}` : "No requests";
+  empty.style.display = S.logs.length ? "none" : "block";
+  rows.innerHTML = S.logs.map(entry => {
+    const total = Math.max(1, (entry.stt_ms || 0) + (entry.chat_ms || 0) + (entry.tts_ms || 0));
+    const statusClass = entry.status === "ok" ? "status-ok" : "status-err";
+    const statusText = entry.status === "ok" ? "200 OK" : "ERR";
+    return `<tr>
+      <td class="mono">${fmtTime(entry.ts)}</td>
+      <td>${fmtMs(entry.total_ms)}</td>
+      <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+      <td>
+        <div class="timing"><span>STT</span><div class="bar"><i style="--w:${Math.max(4, entry.stt_ms / total * 100)}%;--c:#148a45"></i></div></div>
+        <div class="timing"><span>LLM</span><div class="bar"><i style="--w:${Math.max(4, entry.chat_ms / total * 100)}%;--c:#1269ff"></i></div></div>
+        <div class="timing"><span>TTS</span><div class="bar"><i style="--w:${Math.max(4, entry.tts_ms / total * 100)}%;--c:#6d5bd0"></i></div></div>
+      </td>
+      <td class="mono">${esc(trunc(entry.model, 28))}</td>
+    </tr>`;
+  }).join("");
+  transcripts.innerHTML = S.logs.length ? S.logs.slice(0, 8).map(entry => `
+    <div class="turn-row">
+      <div class="mono">${fmtTime(entry.ts)}</div>
+      <div class="turn-copy">
+        <b>${esc(trunc(entry.transcript || entry.error || "No transcript", 86))}</b>
+        <span>${esc(trunc(entry.reply || entry.error || "No reply", 110))}</span>
       </div>
-      <div class="log-turns">
-        ${e.transcript ? `<div class="turn turn-user">
-          <div class="turn-label">🎤</div>
-          <div class="turn-text">${esc(trunc(e.transcript))}</div>
-        </div>` : ''}
-        ${e.reply ? `<div class="turn turn-bot">
-          <div class="turn-label">💬</div>
-          <div class="turn-text">${esc(trunc(e.reply))}</div>
-        </div>` : ''}
-        ${e.error ? `<div class="err-msg">${esc(trunc(e.error, 200))}</div>` : ''}
-      </div>
-      ${e.total_ms ? `<div class="timing-section">
-        <div class="timing-bar">
-          <div class="seg seg-stt" style="flex:${sttF}"></div>
-          <div class="seg seg-chat" style="flex:${chatF}"></div>
-          <div class="seg seg-tts" style="flex:${ttsF}"></div>
-        </div>
-        <div class="timing-labels">
-          ${e.stt_ms  ? `<span class="t-stt">STT ${fmtMs(e.stt_ms)}</span>` : ''}
-          ${e.chat_ms ? `<span class="t-chat">Chat ${fmtMs(e.chat_ms)}</span>` : ''}
-          ${e.tts_ms  ? `<span class="t-tts">TTS ${fmtMs(e.tts_ms)}</span>` : ''}
-          <span class="t-total">Total ${fmtMs(e.total_ms)}</span>
-        </div>
-      </div>` : ''}
-    </div>`;
-  }).join('');
+      <span class="status-pill ${entry.status === "ok" ? "status-ok" : "status-err"}">${entry.status === "ok" ? "200 OK" : "ERR"}</span>
+    </div>`).join("") : `<div class="hint">No transcript history yet.</div>`;
 }
 
 async function fetchLogs() {
-  const data = await api.get('/logs');
-  if (data) renderLogs(data);
-}
-
-document.getElementById('clearBtn').onclick = () => renderLogs([]);
-
-// ── config ────────────────────────────────────────────────────────────────────
-function buildProviderGrid() {
-  const grid = document.getElementById('providerGrid');
-  grid.innerHTML = PROVIDERS.map(p =>
-    `<button class="provider-btn" data-id="${p.id}" type="button">${p.label}</button>`
-  ).join('');
-
-  grid.querySelectorAll('.provider-btn').forEach(btn => {
-    btn.onclick = () => {
-      const p = PROVIDERS.find(x => x.id === btn.dataset.id);
-      if (!p) return;
-      grid.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (p.url) document.getElementById('cfg-chat_completions_url').value = p.url;
-      if (p.model) document.getElementById('cfg-chat_model').value = p.model;
-    };
-  });
-}
-
-function fillConfigForm(cfg) {
-  S.config = cfg;
-  const fields = [
-    'voice_chat_api_key','stt_url','stt_api_key',
-    'chat_completions_url','chat_api_key','chat_model',
-    'tts_url','tts_api_key','default_voice','system_prompt',
-  ];
-  fields.forEach(k => {
-    const el = document.getElementById(`cfg-${k}`);
-    if (el) el.value = cfg[k] || '';
-  });
-
-  // highlight matching provider
-  const url = cfg.chat_completions_url || '';
-  document.querySelectorAll('.provider-btn').forEach(btn => {
-    const p = PROVIDERS.find(x => x.id === btn.dataset.id);
-    btn.classList.toggle('active', !!p && !!p.url && url.startsWith(p.url.split('/v1')[0]));
-  });
-}
-
-async function loadConfig() {
-  const data = await api.get('/config');
-  if (data) fillConfigForm(data);
-}
-
-document.querySelectorAll('.eye-btn').forEach(btn => {
-  btn.onclick = () => {
-    const inp = document.getElementById(btn.dataset.target);
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-    btn.textContent = inp.type === 'password' ? '◎' : '◉';
-  };
-});
-
-document.getElementById('saveBtn').onclick = async () => {
-  const btn = document.getElementById('saveBtn');
-  const status = document.getElementById('saveStatus');
-  btn.disabled = true;
-  status.textContent = 'Saving…';
-  status.className = 'save-status';
-
-  const payload = {};
-  [
-    'voice_chat_api_key','stt_url','stt_api_key',
-    'chat_completions_url','chat_api_key','chat_model',
-    'tts_url','tts_api_key','default_voice','system_prompt',
-  ].forEach(k => {
-    const el = document.getElementById(`cfg-${k}`);
-    if (el) payload[k] = el.value;
-  });
-
-  const data = await api.post('/config', payload);
-  btn.disabled = false;
-
-  if (data) {
-    if (data.voice_chat_api_key && data.voice_chat_api_key !== S.apiKey) {
-      S.apiKey = data.voice_chat_api_key;
-      localStorage.setItem('vcg_api_key', S.apiKey);
-      showNotice('Config saved · API key updated', 'ok');
-    } else {
-      showNotice('Configuration saved', 'ok');
-    }
-    status.textContent = '✓ Saved';
-    status.className = 'save-status save-ok';
-    fillConfigForm(data);
-    setTimeout(() => { status.textContent = ''; }, 3000);
-  } else {
-    status.textContent = '✗ Failed';
-    status.className = 'save-status save-err';
-    showNotice('Save failed — check console', 'err');
+  if (S.paused || !S.authToken || !S.online) return;
+  try {
+    const data = await api.get("/logs");
+    if (data) renderLogs(data);
+  } catch (error) {
+    showToast(`Log refresh failed: ${error.message}`);
   }
-};
-
-// ── test ──────────────────────────────────────────────────────────────────────
-const micBtn   = document.getElementById('micBtn');
-const micRing  = document.getElementById('micRing');
-const micStatus = document.getElementById('micStatus');
-const testLoading = document.getElementById('testLoading');
-const testResult  = document.getElementById('testResult');
-
-micBtn.onclick = () => {
-  if (!S.recording) startRecording();
-  else stopRecording();
-};
+}
 
 async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     S.audioChunks = [];
     S.mediaRecorder = new MediaRecorder(stream);
-    S.mediaRecorder.ondataavailable = e => S.audioChunks.push(e.data);
+    S.mediaRecorder.ondataavailable = event => S.audioChunks.push(event.data);
     S.mediaRecorder.onstop = () => {
-      stream.getTracks().forEach(t => t.stop());
-      const blob = new Blob(S.audioChunks, { type: S.mediaRecorder.mimeType || 'audio/webm' });
+      stream.getTracks().forEach(track => track.stop());
+      const blob = new Blob(S.audioChunks, { type: S.mediaRecorder.mimeType || "audio/webm" });
       sendAudio(blob);
     };
     S.mediaRecorder.start();
     S.recording = true;
-    micBtn.classList.add('recording');
-    micRing.classList.add('recording');
-    micStatus.textContent = 'Recording… tap to stop';
-    micBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-  } catch (err) {
-    showNotice('Microphone access denied', 'err');
+    $("micBtn").classList.add("recording");
+    $("micStatus").textContent = "Recording. Tap to stop.";
+    $("micBtn").innerHTML = `<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+  } catch {
+    showToast("Microphone access denied");
   }
 }
 
 function stopRecording() {
   if (S.mediaRecorder) S.mediaRecorder.stop();
   S.recording = false;
-  micBtn.classList.remove('recording');
-  micRing.classList.remove('recording');
-  micStatus.textContent = 'Processing…';
-  micBtn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <rect x="9" y="2" width="6" height="12" rx="3"/>
-    <path d="M5 10a7 7 0 0 0 14 0"/>
-    <line x1="12" y1="19" x2="12" y2="22"/>
-    <line x1="8" y1="22" x2="16" y2="22"/>
-  </svg>`;
+  $("micBtn").classList.remove("recording");
+  $("micStatus").textContent = "Processing...";
+  $("micBtn").innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 }
 
 async function sendAudio(blob) {
-  testResult.classList.add('hidden');
-  testLoading.classList.remove('hidden');
-  document.getElementById('testLoadingText').textContent = 'Transcribing…';
-
+  const result = $("testResult");
+  result.innerHTML = `<div class="empty">Processing audio through STT, LLM, and TTS...</div>`;
   const form = new FormData();
-  const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('ogg') ? 'ogg' : 'wav';
-  form.append('audio', blob, `recording.${ext}`);
-  const lang = document.getElementById('testLang').value;
-  if (lang) form.append('language', lang);
-
-  const { ok, status, data } = await api.postForm('/voice-chat', form);
-
-  testLoading.classList.add('hidden');
-  micStatus.textContent = 'Tap to record';
-
-  if (!ok || !data) {
-    const msg = data?.detail || `HTTP ${status}`;
-    testResult.className = 'test-result';
-    testResult.innerHTML = `<div class="result-label">Error</div><div class="result-text" style="color:var(--red)">${esc(msg)}</div>`;
-    showNotice(`Request failed: ${msg}`, 'err');
-    return;
+  const ext = blob.type.includes("ogg") ? "ogg" : blob.type.includes("webm") ? "webm" : "wav";
+  form.append("audio", blob, `recording.${ext}`);
+  if ($("testLang").value) form.append("language", $("testLang").value);
+  if ($("testVoice").value.trim()) form.append("voice", $("testVoice").value.trim());
+  try {
+    const started = performance.now();
+    const { ok, status, data } = await api.postForm("/voice-chat", form);
+    $("micStatus").textContent = "Tap to record";
+    $("resultMeta").textContent = `Completed in ${((performance.now() - started) / 1000).toFixed(2)}s`;
+    if (!ok || !data) {
+      const message = data?.detail || `HTTP ${status}`;
+      result.innerHTML = `<div class="result-card"><h3>Error</h3><p style="color:var(--red)">${esc(message)}</p></div>`;
+      showToast(`Request failed: ${message}`);
+      return;
+    }
+    result.innerHTML = `
+      <div class="result-card"><h3>Transcript</h3><div>${esc(data.transcript || "--")}</div></div>
+      <div class="result-card"><h3>Reply</h3><div>${esc(data.reply || "--")}</div></div>
+      <div class="result-card"><h3>Audio</h3><audio controls autoplay src="data:audio/${esc(data.audio_format || "wav")};base64,${data.audio_base64 || ""}"></audio></div>`;
+    showToast("Voice test complete");
+    fetchLogs();
+  } catch (error) {
+    $("micStatus").textContent = "Tap to record";
+    result.innerHTML = `<div class="result-card"><h3>Error</h3><p style="color:var(--red)">${esc(error.message)}</p></div>`;
   }
-
-  testResult.className = 'test-result';
-  testResult.innerHTML = `
-    <div class="result-row">
-      <div class="result-label">You said</div>
-      <div class="result-text">${esc(data.transcript || '—')}</div>
-    </div>
-    <div class="result-row">
-      <div class="result-label">Reply</div>
-      <div class="result-text">${esc(data.reply || '—')}</div>
-    </div>
-    ${data.audio_base64 ? `<div class="result-row">
-      <div class="result-label">Audio</div>
-      <audio class="result-audio" controls autoplay src="data:audio/wav;base64,${data.audio_base64}"></audio>
-    </div>` : ''}
-  `;
-
-  showNotice('Done', 'ok');
 }
 
-// ── tabs ──────────────────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-    if (btn.dataset.tab === 'config' && !S.config) loadConfig();
-  };
-});
+function bindEvents() {
+  $("loginSubmit").addEventListener("click", async () => {
+    const username = $("usernameInput").value.trim();
+    const password = $("passwordInput").value;
+    if (!username || !password) return;
+    $("loginSubmit").disabled = true;
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      if (!response.ok) {
+        showAuth("Wrong username or password. Try again.");
+        return;
+      }
+      const data = await response.json();
+      S.authToken = data.token || "";
+      S.authGen++;
+      localStorage.removeItem("vcg_api_key");
+      localStorage.setItem("vcg_session_token", S.authToken);
+      hideAuth();
+      init();
+    } catch (error) {
+      showAuth(`Login failed: ${error.message}`);
+    } finally {
+      $("loginSubmit").disabled = false;
+    }
+  });
+  [$("usernameInput"), $("passwordInput")].forEach(input => {
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") $("loginSubmit").click();
+    });
+  });
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
+      btn.classList.add("active");
+      $(`view-${btn.dataset.view}`).classList.add("active");
+      placeConfigPanel(btn.dataset.view);
+    });
+  });
+  $("pauseBtn").addEventListener("click", () => {
+    S.paused = !S.paused;
+    $("pauseBtn").innerHTML = S.paused
+      ? `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M5 4l7 4-7 4V4z" fill="currentColor"/></svg>Resume`
+      : `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 4v8M10 4v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>Pause`;
+  });
+  $("refreshBtn").addEventListener("click", () => { checkHealth(); fetchLogs(); loadConfig(); });
+  $("saveTopBtn").addEventListener("click", saveConfig);
+  $("themeToggle").addEventListener("click", () => setTheme(S.theme === "dark" ? "light" : "dark"));
+  $("micBtn").addEventListener("click", () => S.recording ? stopRecording() : startRecording());
+}
 
-// ── init + polling ─────────────────────────────────────────────────────────────
+function placeConfigPanel(view) {
+  const panel = $("configPanel");
+  if (!panel) return;
+  if (view === "config") {
+    $("configHostFull").appendChild(panel);
+  } else {
+    $("configHostMonitor").appendChild(panel);
+  }
+}
+
 async function init() {
   await checkHealth();
-  if (S.online) {
-    fetchLogs();
-    loadConfig();
+  if (S.authToken && S.online) {
+    await loadConfig();
+    await fetchLogs();
   }
 }
 
-if (!S.apiKey) {
-  showAuthModal();
-} else {
-  init();
-}
-
+renderConfigPanels();
+bindEvents();
+renderLogs([]);
+setTheme(S.theme);
+if (!S.authToken) showAuth();
+init();
 setInterval(checkHealth, 15000);
-setInterval(() => { if (S.online && S.apiKey) fetchLogs(); }, 3000);
+setInterval(fetchLogs, 3000);
+setInterval(() => {
+  const seconds = Math.floor((Date.now() - S.startedAt) / 1000);
+  const min = Math.floor(seconds / 60);
+  const sec = String(seconds % 60).padStart(2, "0");
+  $("uptimeText").textContent = `${min}:${sec}`;
+}, 1000);
 </script>
 </body>
 </html>
